@@ -3,10 +3,10 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     # MySQL
-    MYSQL_URL: str = "mysql+pymysql://root:password@mysql:3306/webstore"
+    MYSQL_URL: str = "mysql+pymysql://root:root@mysql:3306/noah"
 
     # PostgreSQL
-    POSTGRES_URL: str = "postgresql://postgres:password@postgres:5432/finance"
+    POSTGRES_URL: str = "postgresql://postgres:root@postgres:5432/noah"
 
     # App
     APP_NAME: str = "Dashboard Service"
