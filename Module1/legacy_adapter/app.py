@@ -40,7 +40,7 @@ def process():
         except Exception as e:
             print(f"Lỗi: {e}")
 
-if name == "main":
+if _name_ == "_main_":
     while True:
         process()
         time.sleep(10)
