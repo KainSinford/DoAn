@@ -1,0 +1,10 @@
+dashboard-service:
+  build: ./module3-dashboard
+  container_name: dashboard-service
+  env_file:
+    - ./module3-dashboard/.env
+  depends_on:
+    - mysql
+    - postgres
+  ports:
+    - "5002:5002"
