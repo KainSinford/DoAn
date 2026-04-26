@@ -1,30 +1,66 @@
-import time
 import json
-from rabbitmq import consume_orders
-from db_mysql import update_order_status
+import pika
+import time
+import os
+import logging
+
 from db_postgres import insert_transaction
+from db_mysql import update_order_status
 
-def process_order(ch, method, properties, body):
-    data = json.loads(body)
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logger = logging.getLogger(__name__)
 
-    order_id = data["order_id"]
 
-    print(f"Processing order {order_id}")
+def get_connection():
+    while True:
+        try:
+            return pika.BlockingConnection(
+                pika.ConnectionParameters(host=os.getenv("RABBITMQ_HOST"))
+            )
+        except Exception as e:
+            logger.warning(f"RabbitMQ connection failed: {e}. Retrying in 3 seconds...")
+            time.sleep(3)
 
-    # Giả lập xử lý
-    time.sleep(2)
 
-    # Insert PostgreSQL
-    insert_transaction(data)
+def callback(ch, method, properties, body):
+    try:
+        data = json.loads(body)
 
-    # Update MySQL
-    update_order_status(order_id, "COMPLETED")
+        insert_transaction(data)
+        update_order_status(data["order_id"], "COMPLETED")
 
-    # ACK
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        logger.info(f"Processed order {data['order_id']}")
 
-def main():
-    consume_orders(process_order)
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        
+        headers = properties.headers or {}
+        retry_count = headers.get("x-retry", 0)
+
+        if retry_count >= 3:
+            logger.error(f"Drop message after 3 retries: {data}")
+            ch.basic_ack(delivery_tag=method.delivery_tag)  # Acknowledge to remove from queue
+        else:
+            logger.warning(f"Retry {retry_count + 1}/3")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
+
+def consume():
+    connection = get_connection()
+    channel = connection.channel()
+
+    channel.queue_declare(queue='order_queue', durable=True)
+    channel.basic_qos(prefetch_count=1)
+
+    channel.basic_consume(
+        queue='order_queue',
+        on_message_callback=callback
+    )
+
+    print("Worker started...")
+    channel.start_consuming()
+
 
 if __name__ == "__main__":
-    main()
+    consume()
