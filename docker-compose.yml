@@ -1,3 +1,4 @@
+
 services:
   kong:
     image: kong:latest
@@ -11,3 +12,82 @@ services:
     ports:
       - "8000:8000" # Cổng cho khách truy cập
       - "8001:8001" # Cổng quản lý (Admin)
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: noah
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: finance
+      POSTGRES_PASSWORD: root
+      POSTGRES_USER: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_broker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adapter:
+    build: ./legacy_adapter
+    container_name: adapter_service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./input:/app/input
+      - ./processed:/app/processed
+
+  order_api:
+    build: ./order_api
+    container_name: order_api_service
+    # Không expose port 5000 ra ngoài để tuân thủ bảo mật Gateway 
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  order_worker:
+    build: ./order_worker
+    container_name: order_worker_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
