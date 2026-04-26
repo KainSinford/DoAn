@@ -1,10 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
+from app.utils.config import settings
 
-MYSQL_URL = os.getenv("MYSQL_URL")
-
-engine = create_engine(MYSQL_URL)
+engine = create_engine(settings.MYSQL_URL)
 SessionLocal = sessionmaker(bind=engine)
 
 def get_mysql_db():
