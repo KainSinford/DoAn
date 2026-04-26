@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.utils.config import settings
+from utils.config import settings
 
 engine = create_engine(settings.MYSQL_URL)
 SessionLocal = sessionmaker(bind=engine)
