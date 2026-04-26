@@ -1,6 +1,12 @@
 from fastapi import FastAPI
-from app.api.report import router as report_router
+from app.services.report_service import get_revenue
 
 app = FastAPI()
 
-app.include_router(report_router)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/reports/revenue")
+def revenue():
+    return {"revenue": get_revenue()}
