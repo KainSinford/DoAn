@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: noah
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: noah
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "15672:15672"
+
+  module1:
+    build: ./Module1
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  module2a:
+    build: ./Module 2/Order_API
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  module2b:
+    build: ./Module 2/Order_Worker
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  module3:
+    build: ./Module 3
+
+  kong:
+    image: kong:3
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong.yml
+    volumes:
+      - ./kong.yml:/kong.yml
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql-data:
+  postgres-data:
