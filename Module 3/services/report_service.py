@@ -1,20 +1,22 @@
 import pandas as pd
+from app.db.mysql import get_orders
+from app.db.postgres import get_transactions
 
-def generate_report(mysql_conn, postgres_conn):
-    # 1. Lấy dữ liệu
-    orders = pd.read_sql("SELECT * FROM orders", mysql_conn)
-    payments = pd.read_sql("SELECT * FROM payments", postgres_conn)
+def get_revenue():
+    orders = get_orders()
+    tx = get_transactions()
 
-    # 2. Stitching (JOIN bằng pandas)
-    merged = pd.merge(orders, payments, on="order_id", how="inner")
+    df_orders = pd.DataFrame(orders)
+    df_tx = pd.DataFrame(tx)
 
-    # 3. Tính doanh thu theo user
-    report = (
-        merged.groupby("user_id")["total_amount"]
-        .sum()
-        .reset_index()
-    )
+    if df_orders.empty or df_tx.empty:
+        return 0
 
-    report.rename(columns={"total_amount": "total_spent"}, inplace=True)
+    df = df_orders.merge(df_tx, on="order_id")
 
-    return report.to_dict(orient="records")
+    df = df[df["status"] == "COMPLETED"]
+
+    # Calculate revenue: sum of (quantity) from completed transactions
+    # Note: if price column exists, multiply quantity * price
+    revenue = int(df["quantity"].sum()) if not df.empty else 0
+    return revenue
