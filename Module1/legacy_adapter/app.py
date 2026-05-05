@@ -11,6 +11,7 @@ import shutil
 def connect_db():
     #lỗi:mysql ko chạy,sai pass mất kết nối 
     #Hàm này đảm bảo kết nối MySQL thành công mới chạy tiếp
+    #cách xử lí: retry liên tục đợi đến khi sẵn sàng
     while True:
         #lapwk vo hạn
         try:
@@ -30,14 +31,16 @@ def process():
     path = "/app/input/inventory.csv"
     #file chứa CSV
     if os.path.exists(path):
-        #ko có file = bỏ qua
+        #ko có file = bỏ qua để tránh crash
         try:
             df = pd.read_csv(path)
             #đọc dataframe
+            #File hỏng sẽ ko làm crash hệ thống
             # Fix MISSING_VALUES cho Nhóm 4
             df = df.dropna(subset=['product_id', 'quantity'])
             df = df[df['quantity'] >= 0]
             #thiếu dữ liệu,số âm
+            #cách xử lí là xóa dữ liệu lỗi trước khi xử lý
             conn = connect_db()
             cursor = conn.cursor()
             for _, row in df.iterrows():
