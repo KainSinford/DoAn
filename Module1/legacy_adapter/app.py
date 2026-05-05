@@ -3,9 +3,15 @@ import mysql.connector
 import time
 import os
 import shutil
-
+#pandas:đọc và xử lý file CSV
+#mysql.connector:kết nối MySQL
+#time:dùng sleep+timestamp
+#os:kiểm tra file ttồn tại
+#shutil:di chuyển file
 def connect_db():
+    #Hàm này đảm bảo kết nối MySQL thành công mới chạy tiếp
     while True:
+        #lapwk vo hạn
         try:
             conn = mysql.connector.connect(
                 host="mysql",
@@ -14,15 +20,19 @@ def connect_db():
                 database="noah"
             )
             return conn
+            #host="mysql" tên service trong docker comp nếu thành công thì trả về connection(ko phải localhost)
         except:
             print("Đang đợi MySQL khởi động...")
             time.sleep(5)
 
 def process():
     path = "/app/input/inventory.csv"
+    #file chứa CSV
     if os.path.exists(path):
+        #ko có file = bỏ qua
         try:
             df = pd.read_csv(path)
+            #đọc dataframe
             # Fix MISSING_VALUES cho Nhóm 4
             df = df.dropna(subset=['product_id', 'quantity'])
             df = df[df['quantity'] >= 0]
