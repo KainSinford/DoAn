@@ -9,6 +9,7 @@ import shutil
 #os:kiểm tra file ttồn tại
 #shutil:di chuyển file
 def connect_db():
+    #lỗi:mysql ko chạy,sai pass mất kết nối 
     #Hàm này đảm bảo kết nối MySQL thành công mới chạy tiếp
     while True:
         #lapwk vo hạn
@@ -36,7 +37,7 @@ def process():
             # Fix MISSING_VALUES cho Nhóm 4
             df = df.dropna(subset=['product_id', 'quantity'])
             df = df[df['quantity'] >= 0]
-            
+            #thiếu dữ liệu,số âm
             conn = connect_db()
             cursor = conn.cursor()
             for _, row in df.iterrows():
@@ -49,6 +50,7 @@ def process():
             print("Đã cập nhật kho thành công!")
         except Exception as e:
             print(f"Lỗi: {e}")
+            #lloix sql,product id ko ton tai
 
 if _name_ == "_main_":
     while True:
